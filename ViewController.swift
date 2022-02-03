@@ -8,6 +8,14 @@
 import UIKit
 import UserNotifications
 
+extension Double {
+    func roundNumber(with decimalNumbers: Int) -> Double {
+        let res = pow(10.0, Double(decimalNumbers))
+        
+        return (self * res).rounded() / res
+    }
+}
+
 class ViewController: UIViewController, UITextFieldDelegate {
 
     @IBOutlet weak var textField: UITextField!
@@ -21,6 +29,8 @@ class ViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var startBtn: UIButton!
     
     @IBOutlet weak var loader: UIActivityIndicatorView!
+    
+    @IBOutlet weak var loadingLabel: UILabel!
     
     //Array with all dividers
     var dividersArray = [Int]()
@@ -43,7 +53,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
         //Text Field only numbers
         self.textField.keyboardType = .numberPad
         
-        //custom button
+        //custom button start
         customizeBtn()
         
         //Reset the progess bar
@@ -56,6 +66,10 @@ class ViewController: UIViewController, UITextFieldDelegate {
         //Disabled label of the result and loader also
         self.resultLabel.isHidden = true
         self.loader.isHidden = true
+        self.loadingLabel.isHidden = true
+        self.loadingLabel.text = "Buscando divisores..."
+        
+
     }
 
     @IBAction func start(_ sender: UIButton) {
@@ -76,8 +90,8 @@ class ViewController: UIViewController, UITextFieldDelegate {
         //Crear contenido notificación
         let content = UNMutableNotificationContent()
         content.title = "Finalizado"
-        content.subtitle = "Divisores totales encontrados (\(dividersArray.count))"
-        content.body = "Revisa los resultados por consola anda.."
+        content.subtitle = "Divisores de \(self.number) encontrados (\(dividersArray.count))"
+        content.body = "Vuelve a la app para revisar los resultados.."
         content.sound = .default
         
         //Definir disparador
@@ -93,30 +107,30 @@ class ViewController: UIViewController, UITextFieldDelegate {
     
     func findDivisors(text: String){
         number = Int(text)!
-        var cont = 0
         if number > 1 {
-            DispatchQueue.global().async {
+            DispatchQueue.global(qos: .userInitiated).async {
                 //Loop to loop through all possible divisors of the number
                 for n in 1...self.number {
                     //If rest of division is 0, it will be a divisor
                     if self.number % n == 0 {
                         //And add one more in the counter and in the array
                         self.dividersArray.append(n)
-                        cont += 1
-                        //interval for each iteration
-                        let interval = n/self.number
-                        DispatchQueue.main.async {
-                            self.progressBar.setProgress(Float(interval), animated: true)
-                        }
-                        DispatchQueue.main.async {
-                            self.percentageLabel.text = "\(interval*100)%"
-                        }
+                    }
+                    //interval for each iteration
+                    let interval = Double(n)/Double(self.number)
+                    //let rounded = Double(round(100*interval)/100)
+                    let rounded = interval.roundNumber(with: 2)
+                    DispatchQueue.main.async {
+                        self.progressBar.setProgress(Float(rounded), animated: true)
+                        self.percentageLabel.text = "\(Int(Float(rounded)*100))%"
                     }
                 }
                 self.showNotification()
                 DispatchQueue.main.async {
                     sleep(1)
+                    //Disabled loading text and loader, and show the result
                     self.loader.isHidden = true
+                    self.loadingLabel.isHidden = true
                     self.showResult()
                     
                 }
@@ -124,6 +138,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
+    //Method to close keyboard
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
     }
@@ -148,6 +163,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
         
         //Enable loader
         self.loader.isHidden = false
+        self.loadingLabel.isHidden = false
         
         //Remove data of dividers array
         self.dividersArray.removeAll()

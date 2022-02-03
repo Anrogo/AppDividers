@@ -42,7 +42,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
         super.viewDidLoad()
         
         //Grant to show notifications
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { (granted, error) in
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { (granted, error) in
             if granted {
                 print("Permiso concedido")
             } else {
@@ -56,9 +56,11 @@ class ViewController: UIViewController, UITextFieldDelegate {
         //custom button start
         customizeBtn()
         
-        //Reset the progess bar
+        //Inicialise the progess bar with its percentage label
         self.progressBar.progress = 0
         self.percentageLabel.text = "0%"
+        self.progressBar.isHidden = true
+        self.percentageLabel.isHidden = true
         
         //Close keyboard when press "intro"
         //self.textField.delegate = self
@@ -93,12 +95,13 @@ class ViewController: UIViewController, UITextFieldDelegate {
         content.subtitle = "Divisores de \(self.number) encontrados (\(dividersArray.count))"
         content.body = "Vuelve a la app para revisar los resultados.."
         content.sound = .default
+        content.badge = 1
         
         //Definir disparador
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         
         //Pedir lanzamiento
-        let request = UNNotificationRequest(identifier: "notificacionId", content: content, trigger: trigger)
+        let request = UNNotificationRequest(identifier: "notificationId", content: content, trigger: trigger)
 
         UNUserNotificationCenter.current().add(request) {
             (error) in print("")
@@ -108,29 +111,37 @@ class ViewController: UIViewController, UITextFieldDelegate {
     func findDivisors(text: String){
         number = Int(text)!
         if number > 1 {
-            DispatchQueue.global(qos: .userInitiated).async {
+            DispatchQueue.global().async {
                 //Loop to loop through all possible divisors of the number
                 for n in 1...self.number {
+                
                     //If rest of division is 0, it will be a divisor
                     if self.number % n == 0 {
                         //And add one more in the counter and in the array
                         self.dividersArray.append(n)
                     }
+                    
                     //interval for each iteration
                     let interval = Double(n)/Double(self.number)
-                    //let rounded = Double(round(100*interval)/100)
+                    
+                    //Calculate the round with a external method
                     let rounded = interval.roundNumber(with: 2)
                     DispatchQueue.main.async {
                         self.progressBar.setProgress(Float(rounded), animated: true)
                         self.percentageLabel.text = "\(Int(Float(rounded)*100))%"
                     }
                 }
+                //Call to show the notification with result
                 self.showNotification()
                 DispatchQueue.main.async {
-                    sleep(1)
-                    //Disabled loading text and loader, and show the result
+                    
+                    //Disable loading text and loader, and show the result in the screen
                     self.loader.isHidden = true
                     self.loadingLabel.isHidden = true
+                    
+                    //Disable also progress bar and percentage
+                    self.progressBar.isHidden = true
+                    self.percentageLabel.isHidden = true
                     self.showResult()
                     
                 }
@@ -152,6 +163,11 @@ class ViewController: UIViewController, UITextFieldDelegate {
     }
     
     func newSearch(){
+        
+        //Enable progress bar and percentage
+        self.progressBar.isHidden = false
+        self.percentageLabel.isHidden = false
+        
         //Origin progress bar
         self.progressBar.progress = 0
         

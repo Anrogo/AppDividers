@@ -8,14 +8,6 @@
 import UIKit
 import UserNotifications
 
-extension Double {
-    func roundNumber(with decimalNumbers: Int) -> Double {
-        let res = pow(10.0, Double(decimalNumbers))
-        
-        return (self * res).rounded() / res
-    }
-}
-
 class ViewController: UIViewController, UITextFieldDelegate {
 
     @IBOutlet weak var textField: UITextField!
@@ -62,7 +54,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
         self.progressBar.isHidden = true
         self.percentageLabel.isHidden = true
         
-        //Close keyboard when press "intro"
+        //Close keyboard when press "intro" (.default keyboard)
         //self.textField.delegate = self
         
         //Disabled label of the result and loader also
@@ -77,19 +69,20 @@ class ViewController: UIViewController, UITextFieldDelegate {
     @IBAction func start(_ sender: UIButton) {
         
         //Get value of text field
-        let text = self.textField.text ?? "0"
-        if text.isEmpty || text == "0" || text == "1" { //If empty, the user is warned
+        number = Int(self.textField.text ?? "0") ?? 0
+        if number == 0 { //If empty, the user is warned
             self.resultLabel.isHidden = false
             self.resultLabel.text = "Introduce un número mayor que 1, por favor"
         } else { //If not empty start searching
-            //Reset values for the new search
+            //First of all, reset values for the new search
             newSearch()
-            findDivisors(text: text)
+            //Now searching
+            findDivisors()
         }
     }
     
     func showNotification() {
-        //Crear contenido notificación
+        //Create and fill in the content to be displayed in the notification
         let content = UNMutableNotificationContent()
         content.title = "Finalizado"
         content.subtitle = "Divisores de \(self.number) encontrados (\(dividersArray.count))"
@@ -97,20 +90,21 @@ class ViewController: UIViewController, UITextFieldDelegate {
         content.sound = .default
         content.badge = 1
         
-        //Definir disparador
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        //Define trigger
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.5, repeats: false)
         
-        //Pedir lanzamiento
+        //Request for the launch
         let request = UNNotificationRequest(identifier: "notificationId", content: content, trigger: trigger)
 
+        //Launch
         UNUserNotificationCenter.current().add(request) {
             (error) in print("")
         }
     }
     
-    func findDivisors(text: String){
-        number = Int(text)!
-        if number > 1 {
+    func findDivisors(){
+        //If number is greater than 0 always enter
+        if number > 0 {
             DispatchQueue.global().async {
                 //Loop to loop through all possible divisors of the number
                 for n in 1...self.number {
@@ -121,27 +115,27 @@ class ViewController: UIViewController, UITextFieldDelegate {
                         self.dividersArray.append(n)
                     }
                     
-                    //interval for each iteration
-                    let interval = Double(n)/Double(self.number)
+                    //Interval for each iteration
+                    let interval = Float(n)/Float(self.number)
                     
-                    //Calculate the round with a external method
-                    let rounded = interval.roundNumber(with: 2)
+                    //Calculate rounding of the number
+                    let rounded = (interval*100).rounded()/100
+
+                    //And display in the main thread the results of each update
                     DispatchQueue.main.async {
                         self.progressBar.setProgress(Float(rounded), animated: true)
-                        self.percentageLabel.text = "\(Int(Float(rounded)*100))%"
+                        self.percentageLabel.text = "\(Int(rounded*100))%"
                     }
                 }
-                //Call to show the notification with result
+                //Call to display the notification with result
                 self.showNotification()
                 DispatchQueue.main.async {
                     
-                    //Disable loading text and loader, and show the result in the screen
+                    //Disable loading text and loader
                     self.loader.isHidden = true
                     self.loadingLabel.isHidden = true
-                    
-                    //Disable also progress bar and percentage
-                    self.progressBar.isHidden = true
-                    self.percentageLabel.isHidden = true
+
+                    //And show the result in the screen
                     self.showResult()
                     
                 }
@@ -154,6 +148,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
         textField.resignFirstResponder()
     }
     
+    //Custom styles for start button
     func customizeBtn(){
         startBtn.layer.backgroundColor =  #colorLiteral(red: 0.1764705926, green: 0.4980392158, blue: 0.7568627596, alpha: 1)
         startBtn.layer.cornerRadius = 12
@@ -162,6 +157,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
         startBtn.setTitleColor(#colorLiteral(red: 1, green: 1, blue: 1, alpha: 1), for: .normal)
     }
     
+    //Method to make a new search of divisors
     func newSearch(){
         
         //Enable progress bar and percentage
@@ -185,6 +181,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
         self.dividersArray.removeAll()
     }
     
+    //Method to finally display the divisors found and stored in the array
     func showResult(){
         self.resultLabel.isHidden = false
         var strResult = "El número \(self.number) tiene \(dividersArray.count) divisores ("
@@ -199,6 +196,7 @@ class ViewController: UIViewController, UITextFieldDelegate {
             }
         }
         strResult += ")"
+        //After concatenating all divisors,it display in the label
         self.resultLabel.text = strResult
     }
 }
